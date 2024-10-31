@@ -6,7 +6,7 @@ class Config():
         self.data_path = 'ETT/ETTh2.csv'
         self.targer = 'OT'
         self.train_radio = 0.8
-        self.test_radio = 0.9
+        self.val_radio = 0.1
         self.hidden = 64
         self.heads = 8
         self.main_size = 7

@@ -1,7 +1,6 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torch.optim.lr_scheduler import StepLR
 from Config import Config
 from self_model import MAIN_MODEL
@@ -11,29 +10,28 @@ from dateset import TimeSeriesDataset
 def read_data(cfg):
     data = pd.read_csv(cfg.data_path)
     OT = list(data['OT'])
-    data =data.drop('OT',axis=1)
+    data = data.drop('OT', axis=1)
     data['date'] = pd.to_datetime(data['date'])
     data['year'] = data['date'].dt.year
     data['month'] = data['date'].dt.month
     data['day'] = data['date'].dt.day
-    data['hour'] =data['date'].dt.hour
+    data['hour'] = data['date'].dt.hour
     data = data.drop('date', axis=1)
     data['OT'] = OT
     return data
 
-
 def tensor_data(cfg):
     data = read_data(cfg)
-    train_data = data.iloc[:int(data.shape[0] * cfg.train_radio), :].values
-    test_data = data.iloc[int(data.shape[0] * cfg.train_radio):int(data.shape[0] * cfg.test_radio), :].values
-    val_data = data.iloc[int(data.shape[0] * cfg.test_radio):, :].values
-    train_data = TimeSeriesDataset(train_data, cfg.seq_len)
-    test_data = TimeSeriesDataset(test_data, cfg.seq_len)
-    val_data = TimeSeriesDataset(val_data, cfg.seq_len)
+    dataset = TimeSeriesDataset(data.values, cfg.seq_len)
+    total_size = len(dataset)
+    train_size = int(total_size * cfg.train_radio)
+    val_size = int(total_size * cfg.val_radio)
+    test_size = total_size - train_size - val_size
+    train_data, test_data, val_data = random_split(dataset, [train_size, val_size, test_size])
     train_data = DataLoader(train_data, batch_size=cfg.batch_size, shuffle=True)
-    test_data = DataLoader(test_data, batch_size=cfg.batch_size, shuffle=True)
     val_data = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=True)
-    return train_data, test_data, val_data
+    test_data = DataLoader(test_data, batch_size=cfg.batch_size, shuffle=True)
+    return train_data, val_data, test_data
 
 
 def test(cfg, loss, test_data):
